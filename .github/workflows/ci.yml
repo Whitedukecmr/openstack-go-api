@@ -25,7 +25,7 @@ jobs:
         run: go test -race -cover ./...
       - name: Build
         run: CGO_ENABLED=0 go build -o bin/osapi ./cmd/osapi
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v8
         with:
           version: latest
 
