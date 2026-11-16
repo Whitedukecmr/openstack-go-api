@@ -29,12 +29,11 @@ type OpenStack struct {
 // NewOpenStack authenticates against Keystone using the OS_* environment
 // variables (source devstack/openrc admin admin).
 func NewOpenStack(ctx context.Context) (*OpenStack, error) {
-	ao, err := openstack.AuthOptionsFromEnv()
+	ao, err := authOptionsFromEnv()
 	if err != nil {
-		return nil, fmt.Errorf("load credentials from OS_* env: %w", err)
+		return nil, fmt.Errorf("load credentials: %w", err)
 	}
 	eo := gophercloud.EndpointOpts{Region: os.Getenv("OS_REGION_NAME")}
-	ao.AllowReauth = true
 
 	provider, err := openstack.AuthenticatedClient(ctx, ao)
 	if err != nil {
