@@ -35,13 +35,18 @@ fi
 HOST_IP=$(ip -4 route get 1.1.1.1 | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
 echo "HOST_IP=${HOST_IP}"
 
-sudo -u stack -H bash -c "
-  set -e
-  cd /opt/stack
-  [[ -d devstack ]] || git clone -b ${DEVSTACK_BRANCH} https://opendev.org/openstack/devstack
-  sed 's/__HOST_IP__/${HOST_IP}/' '${SCRIPT_DIR}/local.conf' > devstack/local.conf
-  cd devstack && ./stack.sh
-"
+# Clone en tant que stack, puis local.conf généré en root (évite les droits sur /home/<user>, en 750 sur 22.04)
+sudo -u stack -H bash -c "cd /opt/stack && [[ -d devstack ]] || git clone -b ${DEVSTACK_BRANCH} https://opendev.org/openstack/devstack"
+sed "s/__HOST_IP__/${HOST_IP}/" "${SCRIPT_DIR}/local.conf" > /opt/stack/devstack/local.conf
+
+# Pas de VT-x/AMD-V exposé (ex. Workstation sur Hyper-V) -> Nova en émulation QEMU
+if ! grep -Eq '(vmx|svm)' /proc/cpuinfo && ! grep -q '^LIBVIRT_TYPE=' /opt/stack/devstack/local.conf; then
+  echo "WARN: pas de virtualisation matérielle, LIBVIRT_TYPE=qemu"
+  sed -i '/^\[\[local|localrc\]\]/a LIBVIRT_TYPE=qemu' /opt/stack/devstack/local.conf
+fi
+chown stack:stack /opt/stack/devstack/local.conf
+
+sudo -u stack -H bash -c "cd /opt/stack/devstack && ./stack.sh"
 
 echo
 echo "OK. Pour utiliser la CLI / l'API :"
